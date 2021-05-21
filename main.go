@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	metal3v1alpha3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
 	"k8s.io/apimachinery/pkg/runtime"
-	infrav1alpha3 "sigs.k8s.io/cluster-api-provider-aws/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
@@ -24,16 +24,15 @@ func main() {
 	fmt.Printf("cluster name %s, namespace %s\n", clusterName, namespace)
 
 	scheme := runtime.NewScheme()
-	_ = infrav1alpha3.AddToScheme(scheme)
+	_ = metal3v1alpha3.AddToScheme(scheme)
 
 	cl, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme})
 	if err != nil {
 		fmt.Println("failed to create client:", err)
 		os.Exit(1)
 	}
-
-	awsCluster := &infrav1alpha3.AWSCluster{}
-	err = cl.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: clusterName}, awsCluster)
+	m3Cluster := &metal3v1alpha3.Metal3Cluster{}
+	err = cl.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: clusterName}, m3Cluster)
 	if err != nil {
 		fmt.Println("failed to get cluster:", err)
 		os.Exit(1)
@@ -41,11 +40,11 @@ func main() {
 
 	fmt.Println("Patching cluster status")
 
-	awsClusterPatch := client.Patch(client.MergeFrom(awsCluster.DeepCopy()))
+	m3ClusterPatch := client.Patch(client.MergeFrom(m3Cluster.DeepCopy()))
 
-	awsCluster.Status.Ready = true
+	m3Cluster.Status.Ready = true
 
-	err = cl.Status().Patch(context.Background(), awsCluster, awsClusterPatch)
+	err = cl.Status().Patch(context.Background(), m3Cluster, m3ClusterPatch)
 	if err != nil {
 		fmt.Println("failed to patch cluster status:", err)
 		os.Exit(1)
